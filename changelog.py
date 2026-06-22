@@ -1,5 +1,22 @@
 #!/usr/bin/env python
+import re
+import subprocess
+
 import click
+
+
+def _get_ticket_from_branch():
+    try:
+        branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            stderr=subprocess.DEVNULL,
+        ).decode().strip()
+        match = re.match(r"^[^/]+/([A-Z][A-Z0-9]*-\d+)", branch)
+        if match:
+            return match.group(1)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    return None
 
 
 class ChangeLogModifier:
@@ -98,7 +115,11 @@ class ChangeLogModifier:
 
 @click.command()
 @click.option(
-    "--ticket", help="JIRA ticket number", prompt="JIRA Ticket Number (e.g XX-XXXX)"
+    "--ticket",
+    help="JIRA ticket number",
+    default=_get_ticket_from_branch,
+    prompt="JIRA Ticket Number (e.g XX-XXXX)",
+    show_default=True,
 )
 @click.option("--text", help="Changelog line", prompt="Text for changelog")
 @click.option(
